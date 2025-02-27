@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ホワイトノイズジェネレーター</title>
 </head>
 <body>
@@ -10,27 +11,28 @@
   <button onclick="stopNoise()">停止</button>
 
   <script>
-    // AudioContext を生成（ブラウザ互換対応）
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let audioCtx;
     let noiseSource;
 
-    // ホワイトノイズを生成する関数
     function createWhiteNoise() {
-      const bufferSize = audioCtx.sampleRate;
+      const bufferSize = 2 * audioCtx.sampleRate;
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const output = buffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1; // -1～+1 のランダム値
+        output[i] = Math.random() * 2 - 1; // -1 ～ +1 のランダム値
       }
       return buffer;
     }
 
-    // ホワイトノイズを再生する関数
     function startNoise() {
-      // 既に再生中の場合は停止
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
       if (noiseSource) {
         noiseSource.stop();
       }
+
       const buffer = createWhiteNoise();
       noiseSource = audioCtx.createBufferSource();
       noiseSource.buffer = buffer;
@@ -39,7 +41,6 @@
       noiseSource.start();
     }
 
-    // 再生中のホワイトノイズを停止する関数
     function stopNoise() {
       if (noiseSource) {
         noiseSource.stop();
