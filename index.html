@@ -3,19 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ホワイトノイズジェネレーター</title>
+  <title>柔らかいホワイトノイズジェネレーター</title>
 </head>
 <body>
-  <h1>ホワイトノイズ再生</h1>
+  <h1>柔らかいホワイトノイズ再生</h1>
   <button onclick="startNoise()">再生</button>
   <button onclick="stopNoise()">停止</button>
+  <br><br>
+  <label for="cutoff">低域カットオフ周波数 (Hz):</label>
+  <input type="range" id="cutoff" min="500" max="5000" value="2000" step="100" onchange="updateFilter(this.value)">
+  <span id="cutoffValue">2000</span> Hz
 
   <script>
     let audioCtx;
     let noiseSource;
+    let filter;
 
     function createWhiteNoise() {
-      const bufferSize = 2 * audioCtx.sampleRate;
+      const bufferSize = 2 * (audioCtx?.sampleRate || 44100); // 2秒分のバッファ
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const output = buffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
@@ -33,11 +38,17 @@
         noiseSource.stop();
       }
 
-      const buffer = createWhiteNoise();
       noiseSource = audioCtx.createBufferSource();
-      noiseSource.buffer = buffer;
+      noiseSource.buffer = createWhiteNoise();
       noiseSource.loop = true;
-      noiseSource.connect(audioCtx.destination);
+
+      filter = audioCtx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = document.getElementById("cutoff").value;
+
+      noiseSource.connect(filter);
+      filter.connect(audioCtx.destination);
+
       noiseSource.start();
     }
 
@@ -45,6 +56,13 @@
       if (noiseSource) {
         noiseSource.stop();
         noiseSource = null;
+      }
+    }
+
+    function updateFilter(value) {
+      document.getElementById("cutoffValue").innerText = value;
+      if (filter) {
+        filter.frequency.value = value;
       }
     }
   </script>
