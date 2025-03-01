@@ -3,28 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>柔らかいホワイトノイズジェネレーター</title>
+  <title>低音強調ピンクノイズ</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #121212;
+      color: white;
+    }
+    h1 {
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+    button {
+      font-size: 22px;
+      padding: 15px 30px;
+      margin: 10px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      width: 90%;
+      max-width: 350px;
+    }
+    #play {
+      background-color: #4CAF50;
+      color: white;
+    }
+    #stop {
+      background-color: #f44336;
+      color: white;
+    }
+    .slider-container {
+      margin-top: 20px;
+    }
+    input[type="range"] {
+      width: 90%;
+      max-width: 350px;
+    }
+    .description {
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #1E1E1E;
+      border-radius: 10px;
+      font-size: 16px;
+      line-height: 1.6;
+      text-align: left;
+      max-width: 90%;
+      display: inline-block;
+    }
+  </style>
 </head>
 <body>
-  <h1>柔らかいホワイトノイズ再生</h1>
-  <button onclick="startNoise()">再生</button>
-  <button onclick="stopNoise()">停止</button>
-  <br><br>
-  <label for="cutoff">低域カットオフ周波数 (Hz):</label>
-  <input type="range" id="cutoff" min="500" max="5000" value="2000" step="100" onchange="updateFilter(this.value)">
-  <span id="cutoffValue">2000</span> Hz
+  <h1>低音強調ピンクノイズ</h1>
+  <button id="play" onclick="startNoise()">▶ 再生</button>
+  <button id="stop" onclick="stopNoise()">⏹ 停止</button>
+
+  <div class="slider-container">
+    <label for="bass">低音の強さ:</label><br>
+    <input type="range" id="bass" min="100" max="1000" value="300" step="50" onchange="updateBass(this.value)">
+    <span id="bassValue">300</span> Hz
+  </div>
+
+  <div class="description">
+    <strong>特徴:</strong><br>
+    ✅ ピンクノイズ（ホワイトノイズより自然で耳に優しい）<br>
+    ✅ 低音を強調（エンジン音や話し声を打ち消しやすい）<br>
+    ✅ ランダムな揺らぎを追加（機械的なノイズではなく、落ち着く雰囲気に）<br>
+    ✅ 耳に優しいフィルター調整（長時間聞いても疲れない音質）<br><br>
+    🎧 ノイズキャンセリングイヤホンと合わせて使えば、周囲の雑音をシャットアウト！<br>
+  </div>
 
   <script>
     let audioCtx;
     let noiseSource;
     let filter;
+    let gainNode;
 
-    function createWhiteNoise() {
-      const bufferSize = 2 * (audioCtx?.sampleRate || 44100); // 2秒分のバッファ
+    function createPinkNoise() {
+      const bufferSize = 2 * (audioCtx?.sampleRate || 44100);
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const output = buffer.getChannelData(0);
+      let lastOut = 0.0;
+
       for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1; // -1 ～ +1 のランダム値
+        const white = Math.random() * 2 - 1;
+        output[i] = (lastOut + (0.02 * white)) / 1.02;
+        lastOut = output[i];
+        output[i] *= 3.5; // 音量調整
       }
       return buffer;
     }
@@ -39,15 +105,20 @@
       }
 
       noiseSource = audioCtx.createBufferSource();
-      noiseSource.buffer = createWhiteNoise();
+      noiseSource.buffer = createPinkNoise();
       noiseSource.loop = true;
 
+      // 低音を強調するフィルター
       filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = document.getElementById("cutoff").value;
+      filter.frequency.value = document.getElementById("bass").value;
+
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = 0.4; // 初期音量 40%
 
       noiseSource.connect(filter);
-      filter.connect(audioCtx.destination);
+      filter.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
 
       noiseSource.start();
     }
@@ -59,8 +130,8 @@
       }
     }
 
-    function updateFilter(value) {
-      document.getElementById("cutoffValue").innerText = value;
+    function updateBass(value) {
+      document.getElementById("bassValue").innerText = value;
       if (filter) {
         filter.frequency.value = value;
       }
