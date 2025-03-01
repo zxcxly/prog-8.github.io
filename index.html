@@ -81,8 +81,8 @@
     let gainNode;
 
     function createPinkNoise() {
-      const bufferSize = 2 * (audioCtx?.sampleRate || 44100);
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const bufferSize = 2 * 44100; // 2秒分のバッファ
+      const buffer = audioCtx.createBuffer(1, bufferSize, 44100);
       const output = buffer.getChannelData(0);
       let lastOut = 0.0;
 
@@ -96,6 +96,7 @@
     }
 
     function startNoise() {
+      // ボタンを押したときにAudioContextを作成（Chromeの自動再生制限対策）
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
